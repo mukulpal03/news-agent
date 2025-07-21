@@ -1,53 +1,22 @@
-import Groq from "groq-sdk";
-import axios from "axios";
+import { allSummaries, summarizeNews } from "./news";
+import { SummaryData } from "./types";
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+function generateReport(summaries: SummaryData[]) {
+  const reportData = summaries.reduce((acc: any, curr: SummaryData) => {
+    const key = curr.category;
 
-interface NewsData {
-  title: string;
-  description: string;
-  url: string;
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+
+    acc[key].push(curr.summary);
+
+    return acc;
+  }, {});
+
+  console.log(reportData);
 }
 
-const news: NewsData[] = [];
-
-export async function getGroqChatCompletion() {
-  const response = await groq.chat.completions.create({
-    messages: [
-      {
-        role: "system",
-        content: "You are a news summarizer",
-      },
-    ],
-    model: "llama-3.3-70b-versatile",
-    tools: [
-      {
-        type: "function",
-        function: {
-          name: "fetchNews",
-          description: "Fetch the news and summarize it in one line",
-        },
-      },
-    ],
-  });
-
-  console.log(response.choices[0].message.content);
-}
-
-async function fetchNews() {
-  const response = await axios.get(
-    `https://newsapi.org/v2/top-headlines?country=us&category=business&apiKey=${process.env.NEWS_API_KEY}`
-  );
-
-  response.data.articles.forEach((article: any) =>
-    news.push({
-      title: article.title,
-      description: article.description,
-      url: article.url,
-    })
-  );
-}
-
-fetchNews();
-
-getGroqChatCompletion();
+summarizeNews().then(() => {
+  generateReport(allSummaries);
+});
